@@ -23,7 +23,8 @@ cursor.execute('''
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS companies (
         company_id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) UNIQUE NOT NULL
+        company_name VARCHAR(255) UNIQUE NOT NULL,
+        company_symbol VARCHAR(10) UNIQUE NOT NULL
     )
 ''')
 cursor.execute('''
