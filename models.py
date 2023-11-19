@@ -10,6 +10,7 @@ class UsersTransactions(Base):
     transaction_id = Column(Integer, ForeignKey('transaction.transaction_id'), primary_key=True)
 
 
+
 class User(Base):
     __tablename__ = 'user'
     user_id = Column(Integer, primary_key=True, index=True)
@@ -17,6 +18,7 @@ class User(Base):
     username = Column(String(255), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     last_login_date = Column(DateTime, nullable=False)
+
 
 class Company(Base):
     __tablename__ = 'company'
@@ -37,5 +39,5 @@ class Transaction(Base):
     price_per_unit = Column(DECIMAL(10, 2), nullable=False)
     transaction_date = Column(Date, nullable=False)
     transaction_type = Column(Enum(TransactionType))
-    users = relationship("User", secondary=UsersTransactions, back_populates="transactions")
+    users = relationship("User", secondary=UsersTransactions, back_populates="transaction")
 
