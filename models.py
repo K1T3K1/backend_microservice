@@ -10,7 +10,6 @@ class UsersTransactions(Base):
     transaction_id = Column(Integer, ForeignKey('transaction.transaction_id'), primary_key=True)
 
 
-
 class User(Base):
     __tablename__ = 'user'
     user_id = Column(Integer, primary_key=True, index=True)
