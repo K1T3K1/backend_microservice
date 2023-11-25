@@ -1,13 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, DECIMAL, Date
+from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, DECIMAL, Date
 from sqlalchemy import Enum
 from sqlalchemy.orm import relationship
 import enum
 from database import Base
 
-class UsersTransactions(Base):
-    __tablename__ = 'user_transaction'
-    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
-    transaction_id = Column(Integer, ForeignKey('transaction.id'), primary_key=True)
+UsersTransactions = Table('users_transactions', Base.metadata,
+    Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
+    Column('transaction_id', Integer, ForeignKey('transaction.id'), )
+)
 
 
 class User(Base):
@@ -17,7 +17,7 @@ class User(Base):
     username = Column(String(255), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     last_login_date = Column(DateTime, nullable=False)
-
+    transactions = relationship("Transaction", secondary=UsersTransactions, back_populates="users")
 
 class Company(Base):
     __tablename__ = 'company'
@@ -36,5 +36,5 @@ class Transaction(Base):
     price_per_unit = Column(DECIMAL(10, 2), nullable=False)
     transaction_date = Column(Date, nullable=False)
     transaction_type = Column(Enum(TransactionType))
-    users = relationship("User", secondary=UsersTransactions, back_populates="transaction")
+    users = relationship("User", secondary=UsersTransactions, back_populates="transactions")
 
