@@ -1,14 +1,19 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
 
-from authorization import router, db_dependency, CreateUserRequest, hash_password, Token, authenticate_user, \
+from authorization import db_dependency, CreateUserRequest, hash_password, Token, authenticate_user, \
     create_access_token
 from models import User
 
+
+router = APIRouter(
+    prefix='/auth',
+    tags=['auth']
+)
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register(db: db_dependency,

@@ -11,11 +11,6 @@ from fastapi.security import OAuth2PasswordBearer
 from database import SessionLocal
 import os
 
-router = APIRouter(
-    prefix='/auth',
-    tags=['auth']
-)
-
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
 

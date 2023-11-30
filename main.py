@@ -9,14 +9,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+import auth_controller
 import authorization
 import models
 from authorization import validate_jwt
 from database import SessionLocal, engine
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(auth.router)
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(auth_controller.router)
 models.Base.metadata.create_all(bind=engine, checkfirst=True)
 
 app.add_middleware(
