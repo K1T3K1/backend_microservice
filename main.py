@@ -1,19 +1,18 @@
-import uvicorn
-from pydantic import BaseModel, Field
-from database import SessionLocal, engine
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, HTTPException, Depends, status
-import models
 from typing import Annotated
-from sqlalchemy.orm import Session
-import auth
-from auth import get_current_user
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+import authorization
+import models
+from authorization import validate_jwt
+from database import SessionLocal, engine
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -28,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -35,10 +35,12 @@ def get_db():
     finally:
         db.close()
 
+
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]
+user_dependency = Annotated[dict, Depends(validate_jwt)]
 
 templates = Jinja2Templates(directory="templates")
+
 
 @app.get("/me", status_code=status.HTTP_200_OK)
 async def user(user: user_dependency, db: db_dependency):
@@ -46,13 +48,16 @@ async def user(user: user_dependency, db: db_dependency):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     return {"User": user}
 
+
 @app.get('/auth/register', response_class=HTMLResponse, include_in_schema=False)
 async def show_register_form(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
+
 @app.get('/auth/token', response_class=HTMLResponse, include_in_schema=False)
 async def show_login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

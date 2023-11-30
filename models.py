@@ -19,15 +19,18 @@ class User(Base):
     last_login_date = Column(DateTime, nullable=False)
     transactions = relationship("Transaction", secondary=UsersTransactions, back_populates="users")
 
+
 class Company(Base):
     __tablename__ = 'company'
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), unique=True, nullable=False)
     company_symbol = Column(String(10), unique=True, nullable=False)
 
+
 class TransactionType(enum.Enum):
     BUY = 'buy'
     SELL = 'sell'
+
 
 class Transaction(Base):
     __tablename__ = 'transaction'
@@ -37,4 +40,3 @@ class Transaction(Base):
     transaction_date = Column(Date, nullable=False)
     transaction_type = Column(Enum(TransactionType))
     users = relationship("User", secondary=UsersTransactions, back_populates="transactions")
-
