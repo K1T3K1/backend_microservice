@@ -39,4 +39,6 @@ class Transaction(Base):
     price_per_unit = Column(DECIMAL(10, 2), nullable=False)
     transaction_date = Column(Date, nullable=False)
     transaction_type = Column(Enum(TransactionType))
+    company_id = Column(Integer, ForeignKey('company.id'))
+    company = relationship("Company", back_populates="transactions")
     users = relationship("User", secondary=UsersTransactions, back_populates="transactions")
