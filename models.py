@@ -26,7 +26,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), unique=True, nullable=False)
     company_symbol = Column(String(10), unique=True, nullable=False)
-    transactions = relationship("Transaction", back_populates="company")
+    # transactions = relationship("Transaction", back_populates="company")
 
 
 class TransactionType(enum.Enum):
