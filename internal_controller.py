@@ -1,31 +1,49 @@
+from typing import Annotated, Optional
+
 from fastapi import APIRouter
 from fastapi.params import Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.annotation import Annotated
+
+from starlette import status
 
 from database import SessionLocal
+from models import Company
+from main import get_db
 
 router = APIRouter(
     tags=['internal']
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
-# class CreateUserRequest(BaseModel):
-#     companies: map
+class CompanyModel(BaseModel):
+    name: str
+    symbol: str
 
 
-# @router.post('/fill_db', status_code=status.HTTP_201_CREATED)
-# async def register(db: db_dependency,
-#                    create_user_request: CreateUserRequest):
-#     for company in create_user_request.companies:
-#         print(company)
-#     return {'message': 'Worked'}
+class CompanyListModel(BaseModel):
+    companies: list[CompanyModel]
+
+
+class InternalResponse(BaseModel):
+    status: str
+
+
+# todo: add authentication
+@router.post('/append_companies', status_code=status.HTTP_201_CREATED, response_model=InternalResponse)
+async def append_companies(db: db_dependency,
+                           company_list: CompanyListModel):
+    companies = []
+    for company in company_list.companies:
+        company = Company(
+            company_name=company.name,
+            company_symbol=company.symbol
+        )
+        companies.append(company)
+
+    db.add_all(companies)
+    db.commit()
+
+    return {'status': 'success'}
