@@ -9,6 +9,7 @@ import models
 import user_controller
 from authorization import validate_jwt
 from database import SessionLocal, engine
+from utils import get_db
 
 app = FastAPI()
 app.include_router(auth_controller.router)
@@ -16,14 +17,6 @@ app.include_router(user_controller.router)
 # app.include_router(internal_controller.router)
 
 models.Base.metadata.create_all(bind=engine, checkfirst=True)
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 db_dependency = Annotated[Session, Depends(get_db)]

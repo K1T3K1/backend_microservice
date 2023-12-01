@@ -6,15 +6,7 @@ from typing import Annotated
 from starlette import status
 
 from authorization import validate_jwt
-from database import SessionLocal
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+from utils import get_db
 
 
 db_dependency = Annotated[Session, Depends(get_db)]

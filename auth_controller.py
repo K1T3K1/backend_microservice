@@ -12,17 +12,12 @@ from authorization import CreateUserRequest, hash_password, Token, authenticate_
 from database import SessionLocal
 from models import User
 
+from utils import get_db
+
 router = APIRouter(
     prefix='/auth',
     tags=['auth']
 )
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
