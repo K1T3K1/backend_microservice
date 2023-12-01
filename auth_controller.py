@@ -3,17 +3,28 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from starlette import status
 
-from authorization import db_dependency, CreateUserRequest, hash_password, Token, authenticate_user, \
+from authorization import CreateUserRequest, hash_password, Token, authenticate_user, \
     create_access_token
+from database import SessionLocal
 from models import User
-
 
 router = APIRouter(
     prefix='/auth',
     tags=['auth']
 )
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+db_dependency = Annotated[Session, Depends(get_db)]
+
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register(db: db_dependency,

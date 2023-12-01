@@ -1,15 +1,15 @@
-from passlib.context import CryptContext
+import os
 from datetime import datetime, timedelta
 from typing import Annotated
-from jose import jwt, JWTError
+
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from starlette import status
-from models import User
 from fastapi.security import OAuth2PasswordBearer
-from database import SessionLocal
-import os
+from jose import jwt, JWTError
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from starlette import status
+
+from models import User
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
@@ -37,17 +37,6 @@ def verify_password(password: str, hashed_pass: str) -> bool:
     return pwd_context.verify(password, hashed_pass)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db_dependency = Annotated[Session, Depends(get_db)]
-
-
 def authenticate_user(username: str, password: str, db):
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -64,7 +53,7 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def validate_jwt(token: Annotated[str, Depends(oauth2_bearer)], db: db_dependency):
+async def validate_jwt(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get('sub')

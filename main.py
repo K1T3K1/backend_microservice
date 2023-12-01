@@ -11,6 +11,8 @@ from database import SessionLocal, engine
 
 app = FastAPI()
 app.include_router(auth_controller.router)
+# app.include_router(internal_controller.router)
+
 models.Base.metadata.create_all(bind=engine, checkfirst=True)
 
 
@@ -24,6 +26,7 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(validate_jwt)]
+
 
 @app.get("/me", status_code=status.HTTP_200_OK)
 async def user(user: user_dependency, db: db_dependency):
