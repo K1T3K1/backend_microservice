@@ -3,6 +3,7 @@ from typing import Annotated
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
+from starlette.middleware.cors import CORSMiddleware
 
 import auth_controller
 import models
@@ -14,7 +15,18 @@ from utils import get_db
 app = FastAPI()
 app.include_router(auth_controller.router)
 app.include_router(user_controller.router)
-# app.include_router(internal_controller.router)
+
+origins = [
+    "*"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"])
 
 models.Base.metadata.create_all(bind=engine, checkfirst=True)
 
