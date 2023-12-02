@@ -65,3 +65,25 @@ async def validate_jwt(token: Annotated[str, Depends(oauth2_bearer)]):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user')
+
+def validate_username(username: str):
+    if len(username) < 3:
+        return False
+    if len(username) > 20:
+        return False
+    return True
+
+def validate_password(password: str):
+    if len(password) < 8:
+        return False
+    if len(password) > 40:
+        return False
+    return True
+
+def validate_email(email: str):
+    if len(email) < 5:
+        return False
+    if len(email) > 50:
+        return False
+    #todo regex
+    return True

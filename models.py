@@ -4,10 +4,11 @@ from sqlalchemy.orm import relationship
 import enum
 from database import Base
 
-UsersTransactions = Table('users_transactions', Base.metadata,
-    Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
-    Column('transaction_id', Integer, ForeignKey('transaction.id'), )
-)
+
+class UserTransaction(Base):
+    __tablename__ = 'user_transaction'
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    transaction_id = Column(Integer, ForeignKey('transaction.id'), primary_key=True)
 
 
 class User(Base):
@@ -17,7 +18,7 @@ class User(Base):
     username = Column(String(255), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     last_login_date = Column(DateTime, nullable=False)
-    transactions = relationship("Transaction", secondary=UsersTransactions, back_populates="users")
+    # transactions = relationship("Transaction", secondary=UserTransaction, back_populates="users")
 
 
 class Company(Base):
@@ -25,6 +26,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), unique=True, nullable=False)
     company_symbol = Column(String(10), unique=True, nullable=False)
+    # transactions = relationship("Transaction", back_populates="company")
 
 
 class TransactionType(enum.Enum):
@@ -39,4 +41,6 @@ class Transaction(Base):
     price_per_unit = Column(DECIMAL(10, 2), nullable=False)
     transaction_date = Column(Date, nullable=False)
     transaction_type = Column(Enum(TransactionType))
-    users = relationship("User", secondary=UsersTransactions, back_populates="transactions")
+    company_id = Column(Integer, ForeignKey('company.id'))
+    # company = relationship("Company", back_populates="transactions")
+    # users = relationship("User", secondary=UserTransaction, back_populates="transactions")
