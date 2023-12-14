@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -16,6 +16,7 @@ ALGORITHM = os.getenv('ALGORITHM')
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
+internal_auth_token = os.getenv('INTERNAL_AUTH_TOKEN')
 
 
 class CreateUserRequest(BaseModel):
@@ -66,6 +67,12 @@ async def validate_jwt(token: Annotated[str, Depends(oauth2_bearer)]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user')
 
+
+async def validate_internal_auth(Authorization: str = Header()):
+    if Authorization != internal_auth_token:
+        raise HTTPException(status_code=400, detail="Unauthorized")
+
+
 def validate_username(username: str):
     if len(username) < 3:
         return False
@@ -73,12 +80,14 @@ def validate_username(username: str):
         return False
     return True
 
+
 def validate_password(password: str):
     if len(password) < 8:
         return False
     if len(password) > 40:
         return False
     return True
+
 
 def validate_email(email: str):
     if len(email) < 5:

@@ -5,16 +5,16 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
 
-import auth_controller
 import models
-import user_controller
+from controllers import user_controller, internal_controller, auth_controller
 from authorization import validate_jwt
-from database import SessionLocal, engine
+from database import engine
 from utils import get_db
 
 app = FastAPI()
 app.include_router(auth_controller.router)
 app.include_router(user_controller.router)
+app.include_router(internal_controller.router)
 
 origins = [
     "*"
@@ -29,7 +29,6 @@ app.add_middleware(
     expose_headers=["*"])
 
 models.Base.metadata.create_all(bind=engine, checkfirst=True)
-
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(validate_jwt)]

@@ -1,22 +1,23 @@
-from typing import Annotated, Optional
+import os
+from typing import Annotated
 
 from fastapi import APIRouter
+from fastapi import Request
 from fastapi.params import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
 from starlette import status
 
-from database import SessionLocal
 from models import Company
-from main import get_db
+from utils import get_db
+from authorization import validate_internal_auth
 
 router = APIRouter(
-    tags=['internal']
+    tags=['internal'],
+    dependencies=[Depends(validate_internal_auth)]
 )
 
 db_dependency = Annotated[Session, Depends(get_db)]
-
 
 class CompanyModel(BaseModel):
     name: str
@@ -35,6 +36,10 @@ class InternalResponse(BaseModel):
 @router.post('/append_companies', status_code=status.HTTP_201_CREATED, response_model=InternalResponse)
 async def append_companies(db: db_dependency,
                            company_list: CompanyListModel):
+    # auth_header = request.headers.get('Authorization')
+    # if auth_header is not internal_auth_token:
+    #     return {'status': 'failed'}
+
     companies = []
     for company in company_list.companies:
         company = Company(
