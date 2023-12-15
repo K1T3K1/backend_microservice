@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from starlette import status
@@ -10,7 +10,8 @@ from utils import get_db
 import authorization
 import utils
 from authorization import CreateUserRequest, hash_password, Token, authenticate_user, \
-    create_access_token
+    create_access_token, ResetPasswordRequest, ResetPasswordResponse, generate_reset_code, \
+    get_user_by_email, send_email, update_password
 from models import User
 
 router = APIRouter(
@@ -19,7 +20,7 @@ router = APIRouter(
 )
 
 db_dependency = Annotated[Session, Depends(get_db)]
-
+password_reset_codes = {}
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register(db: db_dependency,
@@ -58,3 +59,42 @@ async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Dep
     token = create_access_token(user.username, user.id, timedelta(minutes=6000))
 
     return {'access_token': token, 'token_type': 'bearer'}
+
+
+@router.post("/forgot_password", response_model=ResetPasswordResponse)
+async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = get_user_by_email(request.email, db)
+    if user:
+        # Wygeneruj unikalny kod resetowania hasła (możesz użyć uuid lub innej metody)
+        reset_code = generate_reset_code()
+
+        # Zapisz kod resetowania hasła w pamięci podręcznej
+        password_reset_codes[reset_code] = request.email
+
+        # Wyślij e-mail z kodem resetowania hasła
+        send_email(request.email, reset_code)
+
+        return {"message": "Password reset instructions sent to your email."}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email does not exist.",
+        )
+        
+@router.post("/reset_password", response_model=ResetPasswordResponse)
+async def reset_password(code: str = Form(...), new_password: str = Form(...), db: Session = Depends(get_db)):
+    # Sprawdź, czy kod resetowania hasła istnieje
+    email = password_reset_codes.get(code)
+    if email:
+        # Zaktualizuj hasło użytkownika w bazie danych (tutaj umieść odpowiednią logikę)
+        update_password(email, new_password, db)
+
+        # Usuń kod resetowania hasła z pamięci podręcznej
+        del password_reset_codes[code]
+
+        return {"message": "Password reset successful."}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired reset code.",
+        )

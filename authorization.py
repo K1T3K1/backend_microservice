@@ -11,6 +11,10 @@ from starlette import status
 
 from models import User
 
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+import secrets
+
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
 
@@ -28,7 +32,12 @@ class CreateUserRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    
+class ResetPasswordRequest(BaseModel):
+    email: str
 
+class ResetPasswordResponse(BaseModel):
+    message: str
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -96,3 +105,37 @@ def validate_email(email: str):
         return False
     #todo regex
     return True
+
+
+def get_user_by_email(email: str, db):
+    return db.query(User).filter(User.email == email).first()
+
+
+def generate_reset_code():
+    return secrets.token_hex(8)
+
+
+def send_email(to_email: str, reset_code: str):
+    message = Mail(
+        from_email=os.getenv('FROM_EMAIL'),
+        to_emails=to_email,
+        subject='Password reset',
+        html_content=f'<strong>Reset code: {reset_code}</strong>'
+    )
+    
+    try:
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        response = sg.send(message)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f'Error sending email: {e}'
+        )
+
+def update_password(email: str, new_password: str, db):
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        user.password_hash = hash_password(new_password)
+        db.commit()
+        return True
+    return False
