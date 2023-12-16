@@ -65,13 +65,10 @@ async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Dep
 async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(request.email, db)
     if user:
-        # Wygeneruj unikalny kod resetowania hasła (możesz użyć uuid lub innej metody)
         reset_code = generate_reset_code()
 
-        # Zapisz kod resetowania hasła w pamięci podręcznej
         password_reset_codes[reset_code] = request.email
 
-        # Wyślij e-mail z kodem resetowania hasła
         send_email(request.email, reset_code)
 
         return {"message": "Password reset instructions sent to your email."}
@@ -83,13 +80,10 @@ async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(g
         
 @router.post("/reset_password", response_model=ResetPasswordResponse)
 async def reset_password(code: str = Form(...), new_password: str = Form(...), db: Session = Depends(get_db)):
-    # Sprawdź, czy kod resetowania hasła istnieje
     email = password_reset_codes.get(code)
     if email:
-        # Zaktualizuj hasło użytkownika w bazie danych (tutaj umieść odpowiednią logikę)
         update_password(email, new_password, db)
 
-        # Usuń kod resetowania hasła z pamięci podręcznej
         del password_reset_codes[code]
 
         return {"message": "Password reset successful."}
