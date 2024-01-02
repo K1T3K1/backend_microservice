@@ -19,6 +19,7 @@ router = APIRouter(
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+
 class CompanyModel(BaseModel):
     name: str
     symbol: str

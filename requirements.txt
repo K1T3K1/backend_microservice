@@ -14,3 +14,5 @@ cryptography~=41.0.7
 starlette~=0.27.0
 pydantic~=2.5.1
 sendgrid~=6.11.0
+aiohttp~=3.9.1
+aiocsv~=1.2.5

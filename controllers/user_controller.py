@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +10,7 @@ from starlette import status
 from authorization import validate_jwt
 from models import UserTransaction, Transaction
 from utils import get_db
+from database import get_influx_client
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(validate_jwt)]
@@ -38,6 +39,18 @@ class TransactionModel(BaseModel):
 
 class TransactionListModel(BaseModel):
     transactions: list[TransactionModel]
+
+
+class CompanyCandleStickModel(BaseModel):
+    time: datetime
+    OpenPrice: float
+    HighPrice: float
+    LowPrice: float
+    ClosePrice: float
+    Volume: int
+
+class CompanyCandleStickListModel(BaseModel):
+    candlesticks: list[CompanyCandleStickModel]
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -94,6 +107,10 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     if transaction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
 
+    # delete transaction
+    db.delete(transaction)
+    db.commit()
+
     return {'status': 'success'}
 
 
@@ -141,3 +158,25 @@ async def get_all_transactions(user: user_dependency, db: db_dependency):
     )
 
     return {'transactions': transactions}
+
+
+@router.get('/company/chart/candlestick', status_code=status.HTTP_200_OK, response_model=CompanyCandleStickListModel)
+async def get_company_candle_chart(company: str = "XD", range: str = "7d"):
+    client = await get_influx_client()
+    data = await client.query_data(range, company)
+    if data is None or data.empty:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No data found for company")
+
+    records = []
+    for index, row in data.iterrows():
+        record = CompanyCandleStickModel(
+            time=row['_time'].to_pydatetime(),
+            OpenPrice=row['OpenPrice'],
+            HighPrice=row['HighPrice'],
+            LowPrice=row['LowPrice'],
+            ClosePrice=row['ClosePrice'],
+            Volume=row['Volume']
+        )
+        records.append(record)
+
+    return CompanyCandleStickListModel(candlesticks=records)

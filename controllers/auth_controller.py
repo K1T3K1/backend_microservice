@@ -5,14 +5,13 @@ from fastapi import Depends, HTTPException, APIRouter, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from starlette import status
-from utils import get_db
 
 import authorization
-import utils
 from authorization import CreateUserRequest, hash_password, Token, authenticate_user, \
     create_access_token, ResetPasswordRequest, ResetPasswordResponse, generate_reset_code, \
     get_user_by_email, send_email, update_password
 from models import User
+from utils import get_db
 
 router = APIRouter(
     prefix='/auth',
@@ -25,7 +24,6 @@ password_reset_codes = {}
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register(db: db_dependency,
                    create_user_request: CreateUserRequest):
-
     if not authorization.validate_username(create_user_request.username):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Username must be between 3 and 20 characters')
