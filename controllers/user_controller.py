@@ -94,12 +94,26 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     transaction_id = token.id
     user_id = user['id']
 
-    # get transaction from db where transaction id and user id match
-    transaction = (
-        db.query(Transaction)
-        .join(UserTransaction)
+    # get user_transaction from db where transaction id and user id match
+    user_transaction = (
+        db.query(UserTransaction)
         .filter(UserTransaction.transaction_id == transaction_id)
         .filter(UserTransaction.user_id == user_id)
+        .first()
+    )
+
+    # if user_transaction is not found, raise 404
+    if user_transaction is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+
+    # delete user_transaction
+    db.delete(user_transaction)
+    db.commit()
+
+    # get transaction from db
+    transaction = (
+        db.query(Transaction)
+        .filter(Transaction.id == transaction_id)
         .first()
     )
 
@@ -112,6 +126,7 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     db.commit()
 
     return {'status': 'success'}
+
 
 
 @router.post('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
