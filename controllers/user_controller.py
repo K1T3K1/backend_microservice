@@ -49,8 +49,18 @@ class CompanyCandleStickModel(BaseModel):
     ClosePrice: float
     Volume: int
 
+
 class CompanyCandleStickListModel(BaseModel):
     candlesticks: list[CompanyCandleStickModel]
+
+
+class CompanyModel(BaseModel):
+    name: str
+    symbol: str
+
+
+class CompanyListModel(BaseModel):
+    companies: list[CompanyModel]
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -99,6 +109,7 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
         db.query(UserTransaction)
         .filter(UserTransaction.transaction_id == transaction_id)
         .filter(UserTransaction.user_id == user_id)
+        .filter(UserTransaction.transaction_id == transaction_id)
         .first()
     )
 
@@ -118,10 +129,11 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     )
 
     # if transaction is not found, raise 404
-    if transaction is None:
+    if transaction is None or user_transaction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
 
     # delete transaction
+    db.delete(user_transaction)
     db.delete(transaction)
     db.commit()
 
@@ -195,3 +207,18 @@ async def get_company_candle_chart(company: str = "XD", range: str = "7d"):
         records.append(record)
 
     return CompanyCandleStickListModel(candlesticks=records)
+
+
+@router.get('/companies', status_code=status.HTTP_200_OK, response_model=CompanyListModel)
+async def get_all_companies(db: db_dependency):
+    companies = db.query(Company).all()
+
+    records = []
+    for company in companies:
+        record = CompanyModel(
+            name=company.company_name,
+            symbol=company.company_symbol
+        )
+        records.append(record)
+
+    return CompanyListModel(companies=records)
