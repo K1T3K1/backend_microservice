@@ -1,15 +1,13 @@
-import os
 from typing import Annotated
 
 from fastapi import APIRouter
-from fastapi import Request
 from fastapi.params import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
 from models import Company
-from utils import get_db
+from utils.utils import get_db
 from authorization import validate_internal_auth
 
 router = APIRouter(

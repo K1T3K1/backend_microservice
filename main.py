@@ -9,7 +9,7 @@ import models
 from controllers import user_controller, internal_controller, auth_controller
 from authorization import validate_jwt
 from database import engine
-from utils import get_db
+from utils.utils import get_db
 
 app = FastAPI()
 app.include_router(auth_controller.router)

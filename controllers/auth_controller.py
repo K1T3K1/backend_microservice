@@ -11,7 +11,7 @@ from authorization import CreateUserRequest, hash_password, Token, authenticate_
     create_access_token, ResetPasswordRequest, ResetPasswordResponse, generate_reset_code, \
     get_user_by_email, send_email, update_password
 from models import User
-from utils import get_db
+from utils.utils import get_db
 
 router = APIRouter(
     prefix='/auth',

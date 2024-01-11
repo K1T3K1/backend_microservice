@@ -9,8 +9,9 @@ from starlette import status
 
 from authorization import validate_jwt
 from models import UserTransaction, Transaction, Company
-from utils import get_db
+from utils.utils import get_db
 from database import get_influx_client
+from utils.metrics import get_metric
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(validate_jwt)]
@@ -61,6 +62,23 @@ class CompanyModel(BaseModel):
 
 class CompanyListModel(BaseModel):
     companies: list[CompanyModel]
+
+
+class SimulatorCompanyModel(BaseModel):
+    company_symbol: str
+    investment_volume: float  # in dollars
+
+
+class SimulatorCompanyListModel(BaseModel):
+    companies: list[SimulatorCompanyModel]
+
+
+class SimulatorResultModel(BaseModel):
+    roi: float  # return on investment
+    stddev: float  # standard deviation
+    interval: tuple[float, float]  # interval
+    sharpe: float  # sharpe ratio
+    recommendation: str
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -138,7 +156,6 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     db.commit()
 
     return {'status': 'success'}
-
 
 
 @router.post('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -222,3 +239,20 @@ async def get_all_companies(db: db_dependency):
         records.append(record)
 
     return CompanyListModel(companies=records)
+
+
+@router.post('/simulator', status_code=status.HTTP_200_OK, response_model=SimulatorResultModel)
+async def run_simulator(db: db_dependency, company_list: SimulatorCompanyListModel):
+    companies_values = {}
+    for company in company_list.companies:
+        companies_values[company.company_symbol] = company.investment_volume
+    print(companies_values)
+    result = await get_metric(companies_values)
+
+    return SimulatorResultModel(
+        roi=result['ROI'],
+        stddev=result['STDDEV'],
+        interval=result['INTERVAL'],
+        sharpe=result['SHARPE'],
+        recommendation=result['RECOMMENDATION']
+    )
