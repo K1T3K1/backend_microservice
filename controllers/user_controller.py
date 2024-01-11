@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from authorization import validate_jwt
-from models import UserTransaction, Transaction
+from models import UserTransaction, Transaction, Company
 from utils import get_db
 from database import get_influx_client
 
