@@ -83,7 +83,8 @@ class SimulatorResultModel(BaseModel):
 class WalletModel(BaseModel):
     name: str
     amount: int
-    average_price: float
+    average_buy_price: float
+    average_sell_price: float
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -256,8 +257,7 @@ async def run_simulator(db: db_dependency, company_list: SimulatorCompanyListMod
     )
 
 
-# ONLY WORKS FOR BUY ENUM, SELL ENUM WORKS LIKE BUY ENUM RN
-@router.get('/user/wallet', status_code=status.HTTP_200_OK, response_model=List[WalletModel])
+@router.get('/user/wallet', response_model=List[WalletModel], status_code=status.HTTP_200_OK)
 async def get_user_wallet(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
@@ -276,27 +276,43 @@ async def get_user_wallet(user: user_dependency, db: db_dependency):
         company_name = transaction.company.company_name
         amount = transaction.amount
         price_per_unit = transaction.price_per_unit
+        transaction_type = transaction.transaction_type
 
-       
         if company_name not in user_portfolio:
-            user_portfolio[company_name] = {'total_amount': amount, 'total_cost': amount * price_per_unit}
-        else:
+            user_portfolio[company_name] = {'total_amount': 0, 'total_cost': 0, 'total_buy_amount': 0, 'total_buy_cost': 0, 'total_sell_amount': 0, 'total_sell_cost': 0}
+
+        if transaction_type == TransactionType.BUY:
             user_portfolio[company_name]['total_amount'] += amount
-            user_portfolio[company_name]['total_cost'] += amount * price_per_unit
+            user_portfolio[company_name]['total_buy_amount'] += amount
+            user_portfolio[company_name]['total_buy_cost'] += amount * price_per_unit
+        elif transaction_type == TransactionType.SELL:
+            user_portfolio[company_name]['total_amount'] -= amount 
+            user_portfolio[company_name]['total_sell_amount'] += amount
+            user_portfolio[company_name]['total_sell_cost'] += amount * price_per_unit
+            user_portfolio[company_name]['total_buy_amount'] -= amount
 
     wallet_records = []
     for company_name, values in user_portfolio.items():
-        amount = values['total_amount']
-        total_cost = values['total_cost']
-        average_price = total_cost / amount if amount > 0 else 0
+        total_amount = values['total_amount']
+        total_buy_amount = values['total_buy_amount']
+        total_buy_cost = values['total_buy_cost']
+        total_sell_amount = values['total_sell_amount']
+        total_sell_cost = values['total_sell_cost']
+
+        average_buy_price = total_buy_cost / total_buy_amount if total_buy_amount > 0 else 0
+        average_sell_price = total_sell_cost / total_sell_amount if total_sell_amount > 0 else 0
 
         wallet_record = WalletModel(
             name=company_name,
-            amount=amount,
-            average_price=average_price
+            amount=total_amount,
+            average_buy_price=average_buy_price,
+            average_sell_price=average_sell_price
         )
         wallet_records.append(wallet_record)
 
     return wallet_records
+
+
+
 
 
