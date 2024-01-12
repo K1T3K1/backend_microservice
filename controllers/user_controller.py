@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
 
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from authorization import validate_jwt
-from models import UserTransaction, Transaction, Company
+from models import TransactionType, UserTransaction, Transaction, Company
 from utils.utils import get_db
 from database import get_influx_client
 from utils.metrics import get_metric
@@ -79,6 +79,11 @@ class SimulatorResultModel(BaseModel):
     interval: tuple[float, float]  # interval
     sharpe: float  # sharpe ratio
     recommendation: str
+    
+class WalletModel(BaseModel):
+    name: str
+    amount: int
+    average_price: float
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -118,11 +123,9 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
-    # get transaction id from request
     transaction_id = token.id
     user_id = user['id']
 
-    # get user_transaction from db where transaction id and user id match
     user_transaction = (
         db.query(UserTransaction)
         .filter(UserTransaction.transaction_id == transaction_id)
@@ -131,26 +134,21 @@ async def delete_transaction(user: user_dependency, db: db_dependency, token: Tr
         .first()
     )
 
-    # if user_transaction is not found, raise 404
     if user_transaction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
 
-    # delete user_transaction
     db.delete(user_transaction)
     db.commit()
 
-    # get transaction from db
     transaction = (
         db.query(Transaction)
         .filter(Transaction.id == transaction_id)
         .first()
     )
 
-    # if transaction is not found, raise 404
     if transaction is None or user_transaction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
 
-    # delete transaction
     db.delete(user_transaction)
     db.delete(transaction)
     db.commit()
@@ -256,3 +254,49 @@ async def run_simulator(db: db_dependency, company_list: SimulatorCompanyListMod
         sharpe=result['SHARPE'],
         recommendation=result['RECOMMENDATION']
     )
+
+
+# ONLY WORKS FOR BUY ENUM, SELL ENUM WORKS LIKE BUY ENUM RN
+@router.get('/user/wallet', status_code=status.HTTP_200_OK, response_model=List[WalletModel])
+async def get_user_wallet(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    user_id = user['id']
+
+    user_transactions = (
+        db.query(UserTransaction)
+        .filter(UserTransaction.user_id == user_id)
+        .all()
+    )
+
+    user_portfolio = {}
+    for user_transaction in user_transactions:
+        transaction = user_transaction.transaction
+        company_name = transaction.company.company_name
+        amount = transaction.amount
+        price_per_unit = transaction.price_per_unit
+
+       
+        if company_name not in user_portfolio:
+            user_portfolio[company_name] = {'total_amount': amount, 'total_cost': amount * price_per_unit}
+        else:
+            user_portfolio[company_name]['total_amount'] += amount
+            user_portfolio[company_name]['total_cost'] += amount * price_per_unit
+
+    wallet_records = []
+    for company_name, values in user_portfolio.items():
+        amount = values['total_amount']
+        total_cost = values['total_cost']
+        average_price = total_cost / amount if amount > 0 else 0
+
+        wallet_record = WalletModel(
+            name=company_name,
+            amount=amount,
+            average_price=average_price
+        )
+        wallet_records.append(wallet_record)
+
+    return wallet_records
+
+
