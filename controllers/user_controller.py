@@ -56,6 +56,7 @@ class CompanyCandleStickListModel(BaseModel):
 
 
 class CompanyModel(BaseModel):
+    id: int
     name: str
     symbol: str
 
@@ -232,6 +233,7 @@ async def get_all_companies(db: db_dependency):
     records = []
     for company in companies:
         record = CompanyModel(
+            id = company.id,
             name=company.company_name,
             symbol=company.company_symbol
         )
@@ -311,6 +313,7 @@ async def get_user_wallet(user: user_dependency, db: db_dependency):
         wallet_records.append(wallet_record)
 
     return wallet_records
+
 
 
 
