@@ -59,7 +59,7 @@ class CompanyModel(BaseModel):
     id: int
     name: str
     symbol: str
-    price_per_unit: float
+    price_per_unit: float = 0
 
 
 class CompanyListModel(BaseModel):
@@ -242,6 +242,7 @@ async def get_all_companies(db: db_dependency):
             id=company.id,
             name=company.company_name,
             symbol=company.company_symbol
+
         )
         records.append(record)
 
