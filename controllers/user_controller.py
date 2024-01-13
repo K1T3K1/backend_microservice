@@ -59,6 +59,7 @@ class CompanyModel(BaseModel):
     id: int
     name: str
     symbol: str
+    price_per_unit: float
 
 
 class CompanyListModel(BaseModel):
@@ -81,7 +82,7 @@ class SimulatorResultModel(BaseModel):
     sharpe: float  # sharpe ratio
     recommendation: str
 
-    
+
 class WalletModel(BaseModel):
     name: str
     amount: int
@@ -238,7 +239,7 @@ async def get_all_companies(db: db_dependency):
     records = []
     for company in companies:
         record = CompanyModel(
-            id = company.id,
+            id=company.id,
             name=company.company_name,
             symbol=company.company_symbol
         )
@@ -254,12 +255,18 @@ async def get_company_by_id(id: int, db: db_dependency):
     if company is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
 
+    client = await get_influx_client()
+    data = await client.query_data("1d", company.company_symbol)
+
+    if data is None or data.empty:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No data found for company")
+
     record = CompanyModel(
         id=company.id,
         name=company.company_name,
-        symbol=company.company_symbol
+        symbol=company.company_symbol,
+        price_per_unit=data.iloc[-1]['ClosePrice']
     )
-
     return record
 
 
@@ -268,7 +275,6 @@ async def run_simulator(db: db_dependency, company_list: SimulatorCompanyListMod
     companies_values = {}
     for company in company_list.companies:
         companies_values[company.company_symbol] = company.investment_volume
-    print(companies_values)
     result = await get_metric(companies_values)
 
     return SimulatorResultModel(
@@ -302,14 +308,15 @@ async def get_user_wallet(user: user_dependency, db: db_dependency):
         transaction_type = transaction.transaction_type
 
         if company_name not in user_portfolio:
-            user_portfolio[company_name] = {'total_amount': 0, 'total_cost': 0, 'total_buy_amount': 0, 'total_buy_cost': 0, 'total_sell_amount': 0, 'total_sell_cost': 0}
+            user_portfolio[company_name] = {'total_amount': 0, 'total_cost': 0, 'total_buy_amount': 0,
+                                            'total_buy_cost': 0, 'total_sell_amount': 0, 'total_sell_cost': 0}
 
         if transaction_type == TransactionType.BUY:
             user_portfolio[company_name]['total_amount'] += amount
             user_portfolio[company_name]['total_buy_amount'] += amount
             user_portfolio[company_name]['total_buy_cost'] += amount * price_per_unit
         elif transaction_type == TransactionType.SELL:
-            user_portfolio[company_name]['total_amount'] -= amount 
+            user_portfolio[company_name]['total_amount'] -= amount
             user_portfolio[company_name]['total_sell_amount'] += amount
             user_portfolio[company_name]['total_sell_cost'] += amount * price_per_unit
             user_portfolio[company_name]['total_buy_amount'] -= amount
@@ -334,9 +341,3 @@ async def get_user_wallet(user: user_dependency, db: db_dependency):
         wallet_records.append(wallet_record)
 
     return wallet_records
-
-
-
-
-
-

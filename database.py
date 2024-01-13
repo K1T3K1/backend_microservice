@@ -47,7 +47,7 @@ class InfluxClient:
         # if not, raise error
         # if so, get the number
 
-        if range[-1] not in ["d", "m", "y"]:
+        if range[-1] not in ["d", "m", "y", "h"]:
             raise ValueError("Invalid range")
 
         try:
@@ -65,6 +65,10 @@ class InfluxClient:
 
         if range[-1] == "y":
             start = now - timedelta(days=num * 365)
+            return start, now
+
+        if range[-1] == "h":
+            start = now - timedelta(hours=num)
             return start, now
 
         raise ValueError("Invalid range")
