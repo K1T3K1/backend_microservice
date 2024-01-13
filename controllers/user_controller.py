@@ -80,12 +80,17 @@ class SimulatorResultModel(BaseModel):
     interval: tuple[float, float]  # interval
     sharpe: float  # sharpe ratio
     recommendation: str
+
     
 class WalletModel(BaseModel):
     name: str
     amount: int
     average_buy_price: float
     average_sell_price: float
+
+
+class CompanyByIdModel(BaseModel):
+    id: int
 
 
 @router.put('/user/transaction', status_code=status.HTTP_200_OK, response_model=TransactionResult)
@@ -240,6 +245,22 @@ async def get_all_companies(db: db_dependency):
         records.append(record)
 
     return CompanyListModel(companies=records)
+
+
+@router.get('/company', status_code=status.HTTP_200_OK, response_model=CompanyModel)
+async def get_company_by_id(id: int, db: db_dependency):
+    company = db.query(Company).filter(Company.id == id).first()
+
+    if company is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
+
+    record = CompanyModel(
+        id=company.id,
+        name=company.company_name,
+        symbol=company.company_symbol
+    )
+
+    return record
 
 
 @router.post('/simulator', status_code=status.HTTP_200_OK, response_model=SimulatorResultModel)
