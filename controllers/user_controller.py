@@ -257,7 +257,7 @@ async def get_company_by_id(id: int, db: db_dependency):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
 
     client = await get_influx_client()
-    data = await client.query_data("1d", company.company_symbol)
+    data = await client.query_data("30d", company.company_symbol)
 
     if data is None or data.empty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No data found for company")
