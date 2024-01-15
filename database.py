@@ -77,9 +77,6 @@ class InfluxClient:
             self, range_str=str, symbol: Optional[str] = None
     ) -> Optional[DataFrame]:
 
-        if not symbol:
-            raise ValueError("Symbol must be provided")
-
         formatted_range = self.get_dates_from_now(range_str)
 
         query = self._get_query(formatted_range, symbol)
@@ -95,6 +92,12 @@ class InfluxClient:
         return df
 
     def _get_query(self, range=tuple[datetime, datetime], symbol: Optional[str] = None) -> str:
+        if not symbol:
+            return f"""from(bucket: "{self._bucket}")
+                            |> range(start: {self.format_date(range[0])}, stop: {self.format_date(range[1])})
+                            |> filter(fn: (r) => r._measurement == "CandleData")
+                            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                            """
         return f"""from(bucket: "{self._bucket}")
                             |> range(start: {self.format_date(range[0])}, stop: {self.format_date(range[1])})
                             |> filter(fn: (r) => r._measurement == "CandleData" and r.Symbol == "{symbol}")

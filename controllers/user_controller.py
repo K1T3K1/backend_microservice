@@ -237,12 +237,21 @@ async def get_all_companies(db: db_dependency):
     companies = db.query(Company).all()
 
     records = []
+    client = await get_influx_client()
+    data = await client.query_data("3d")
+
     for company in companies:
+        price_per_unit = 0
+        for index, row in data.iterrows():
+            if row['Symbol'] == company.company_symbol:
+                price_per_unit = row['ClosePrice']
+                break
+
         record = CompanyModel(
             id=company.id,
             name=company.company_name,
-            symbol=company.company_symbol
-
+            symbol=company.company_symbol,
+            price_per_unit=price_per_unit
         )
         records.append(record)
 
